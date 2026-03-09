@@ -28,4 +28,4 @@ cabal.project.local~
 .direnv/
 
 # nix
-result/
+result
