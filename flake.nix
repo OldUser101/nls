@@ -1,33 +1,45 @@
 {
-  description = "Nathan Gill's Haskell flake template";
+  description = "nls";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-    utils.url = "github:numtide/flake-utils";
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    haskell-flake.url = "github:srid/haskell-flake";
   };
 
   outputs =
-    {
-      self,
-      utils,
-      nixpkgs,
-    }:
-    utils.lib.eachDefaultSystem (
-      system:
-      let
-        pkgs = import nixpkgs { inherit system; };
-      in
-      {
-        devShell = pkgs.mkShell {
-          nativeBuildInputs = with pkgs; [
-            ghc
-            ormolu
-            haskell-language-server
+    inputs:
+    inputs.flake-parts.lib.mkFlake { inherit inputs; } {
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+      ];
+      imports = [
+        inputs.haskell-flake.flakeModule
+      ];
+      perSystem =
+        {
+          self',
+          system,
+          lib,
+          config,
+          pkgs,
+          ...
+        }:
+        {
+          haskellProjects.default = {
+            autoWire = [ "packages" ];
+          };
 
-            haskellPackages.cabal-fmt
-            haskellPackages.cabal-install
-          ];
+          devShells.default = pkgs.mkShell {
+            inputsFrom = [
+              config.haskellProjects.default.outputs.devShell
+            ];
+
+            nativeBuildInputs = with pkgs; [
+              haskellPackages.cabal-fmt
+            ];
+          };
         };
-      }
-    );
+    };
 }
