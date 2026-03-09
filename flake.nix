@@ -31,6 +31,8 @@
             autoWire = [ "packages" ];
           };
 
+          packages.default = self'.packages.nls;
+
           devShells.default = pkgs.mkShell {
             inputsFrom = [
               config.haskellProjects.default.outputs.devShell
