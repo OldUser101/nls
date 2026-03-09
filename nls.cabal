@@ -71,6 +71,7 @@ executable nls
     Parser
     Repl
     Types
+    Util
 
   -- LANGUAGE extensions used by modules in this package.
   -- other-extensions:
@@ -78,9 +79,9 @@ executable nls
   -- Other library packages from which modules are imported.
   build-depends:
     , base        ^>=4.20.2.0
+    , containers  >=0.7
     , megaparsec  >=9.7.0
     , text        >=2.1.3
-    , containers  >=0.7
 
   -- Directories containing source files.
   hs-source-dirs:   src

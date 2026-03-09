@@ -20,10 +20,16 @@ repl env = do
     else do
       line <- getLine
       let input = T.pack line
-      case P.parse input of
-        Left err -> putStrLn $ "Parse error: " ++ (T.unpack err)
-        Right ast ->
+      newEnv <- case P.parse input of
+        Left err -> do
+          putStrLn $ "Parse error: " ++ (T.unpack err)
+          pure env
+        Right ast -> do
           case E.evalProgram env ast of
-            Left err -> putStrLn $ "Error: " ++ (T.unpack err)
-            Right results -> mapM_ print results
-      repl env
+            Left err -> do
+              putStrLn $ "Error: " ++ (T.unpack err)
+              pure env
+            Right (results, env') -> do
+              mapM_ print results
+              pure env'
+      repl newEnv

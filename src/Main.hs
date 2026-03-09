@@ -18,5 +18,5 @@ main = do
         Right ast -> do
           case E.evalProgram E.baseEnv ast of
             Left err -> putStrLn (T.unpack err)
-            Right result -> mapM_ print result
+            Right (result, _) -> mapM_ print result
     _ -> R.repl E.baseEnv

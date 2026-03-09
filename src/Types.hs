@@ -1,9 +1,9 @@
 module Types
   ( NlsAstValue (..),
     NlsRunValue (..),
-    Env,
+    Env (..),
     Eval,
-    aToRValue,
+    Frame,
   )
 where
 
@@ -17,7 +17,12 @@ data NlsAstValue
   | AList [NlsAstValue]
   deriving (Show, Eq, Ord)
 
-type Env = M.Map String NlsRunValue
+type Frame = M.Map String NlsRunValue
+
+data Env = Env
+  { frame :: Frame,
+    parent :: Maybe Env
+  }
 
 type Eval a = Either T.Text a
 
@@ -26,17 +31,13 @@ data NlsRunValue
   | RString String
   | RSymbol String
   | RList [NlsRunValue]
-  | RFunction ([NlsRunValue] -> Eval NlsRunValue)
+  | RFunction ([NlsRunValue] -> Env -> Eval (NlsRunValue, Env))
+  | RUnit -- an empty value
 
 instance Show NlsRunValue where
   show (RNumber n) = show n
   show (RString s) = show s
   show (RSymbol s) = s
   show (RList xs) = "(" ++ unwords (map show xs) ++ ")"
-  show (RFunction _) = show ("<function>" :: String)
-
-aToRValue :: NlsAstValue -> NlsRunValue
-aToRValue (ANumber n) = RNumber n
-aToRValue (AString s) = RString s
-aToRValue (ASymbol s) = RSymbol s
-aToRValue (AList xs) = RList (map aToRValue xs)
+  show (RFunction _) = "<function>"
+  show RUnit = "<empty>"

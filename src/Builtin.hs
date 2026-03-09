@@ -44,11 +44,19 @@ builtinDiv xs = case xs of
     rs <- mapM expectNumber rest
     if elem 0 rs then Left "division by zero" else makeBuiltin div f rest
 
+wrapBuiltin :: ([NlsRunValue] -> Eval NlsRunValue) -> NlsRunValue
+wrapBuiltin f = RFunction wrapped
+  where
+    wrapped :: [NlsRunValue] -> Env -> Eval (NlsRunValue, Env)
+    wrapped args env = do
+      val <- f args
+      pure (val, env)
+
 -- builtins "export" table
 builtins :: [(String, NlsRunValue)]
 builtins =
-  [ ("+", RFunction builtinAdd),
-    ("*", RFunction builtinMul),
-    ("-", RFunction builtinSub),
-    ("/", RFunction builtinDiv)
+  [ ("+", wrapBuiltin builtinAdd),
+    ("*", wrapBuiltin builtinMul),
+    ("-", wrapBuiltin builtinSub),
+    ("/", wrapBuiltin builtinDiv)
   ]
