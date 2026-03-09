@@ -16,11 +16,11 @@ instance ShowErrorComponent Error where
 
 type NlsParser a = Parsec Error Input a
 
-data NlsValue
-  = Atom String
-  | Number Integer
-  | String String
-  | List [NlsValue]
+data NlsAstValue
+  = ASymbol String
+  | ANumber Integer
+  | AString String
+  | AList [NlsAstValue]
   deriving (Show, Eq, Ord)
 
 sc :: NlsParser ()
@@ -35,41 +35,41 @@ lexeme = L.lexeme sc
 symbol :: T.Text -> NlsParser T.Text
 symbol = L.symbol sc
 
-parseAtom :: NlsParser NlsValue
-parseAtom = do
+parseSymbol :: NlsParser NlsAstValue
+parseSymbol = do
   first <- letterChar <|> oneOf ("!$%&|*+-/:<=>?@^_~" :: String)
   rest <- many (alphaNumChar <|> oneOf ("!$%&|*+-/:<=>?@^_~" :: String))
-  pure $ Atom (first : rest)
+  pure $ ASymbol (first : rest)
 
-parseQuote :: NlsParser NlsValue
+parseQuote :: NlsParser NlsAstValue
 parseQuote = do
   _ <- char '\''
   v <- parseValue
-  pure $ List [Atom "quote", v]
+  pure $ AList [ASymbol "'", v]
 
-parseNumber :: NlsParser NlsValue
-parseNumber = Number <$> lexeme L.decimal
+parseNumber :: NlsParser NlsAstValue
+parseNumber = ANumber <$> lexeme L.decimal
 
-parseString :: NlsParser NlsValue
-parseString = String <$> lexeme (char '"' >> manyTill L.charLiteral (char '"'))
+parseString :: NlsParser NlsAstValue
+parseString = AString <$> lexeme (char '"' >> manyTill L.charLiteral (char '"'))
 
-parseList :: NlsParser NlsValue
-parseList = List <$> between (symbol "(") (symbol ")") (many parseValue)
+parseList :: NlsParser NlsAstValue
+parseList = AList <$> between (symbol "(") (symbol ")") (many parseValue)
 
-parseValue :: NlsParser NlsValue
+parseValue :: NlsParser NlsAstValue
 parseValue =
   lexeme $
     parseQuote
       <|> parseNumber
       <|> parseString
-      <|> parseAtom
+      <|> parseSymbol
       <|> parseList
 
-parseProgram :: NlsParser NlsValue
-parseProgram = between sc eof (List <$> many parseValue)
+parseProgram :: NlsParser NlsAstValue
+parseProgram = between sc eof (AList <$> many parseValue)
 
-parseNls :: Input -> Either T.Text NlsValue
-parseNls input =
+parse :: Input -> Either T.Text NlsAstValue
+parse input =
   case runParser parseProgram "" input of
     Left err -> Left $ T.pack $ errorBundlePretty err
     Right val -> Right val
