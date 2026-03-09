@@ -1,11 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Parser where
+module Parser
+  ( Parser.parse,
+  )
+where
 
 import qualified Data.Text as T
 import Text.Megaparsec
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
+import Types
 
 newtype Error = Error T.Text deriving (Show, Eq, Ord)
 
@@ -15,13 +19,6 @@ instance ShowErrorComponent Error where
   showErrorComponent (Error e) = T.unpack e
 
 type NlsParser a = Parsec Error Input a
-
-data NlsAstValue
-  = ASymbol String
-  | ANumber Integer
-  | AString String
-  | AList [NlsAstValue]
-  deriving (Show, Eq, Ord)
 
 sc :: NlsParser ()
 sc = L.space space1 lineComment empty
