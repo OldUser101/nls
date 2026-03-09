@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Parser where
 
 import qualified Data.Text as T
@@ -22,33 +24,52 @@ data NlsValue
   deriving (Show, Eq, Ord)
 
 sc :: NlsParser ()
-sc = L.space space1 empty empty
+sc = L.space space1 lineComment empty
+
+lineComment :: NlsParser ()
+lineComment = L.skipLineComment (T.pack "#")
+
+lexeme :: NlsParser a -> NlsParser a
+lexeme = L.lexeme sc
+
+symbol :: T.Text -> NlsParser T.Text
+symbol = L.symbol sc
 
 parseAtom :: NlsParser NlsValue
 parseAtom = do
-  first <- letterChar <|> oneOf ("!$%&|*+-/:<=>?@^_~")
-  rest <- many (alphaNumChar <|> oneOf ("!$%&|*+-/:<=>?@^_~"))
-  return $ Atom (first : rest)
+  first <- letterChar <|> oneOf ("!$%&|*+-/:<=>?@^_~" :: String)
+  rest <- many (alphaNumChar <|> oneOf ("!$%&|*+-/:<=>?@^_~" :: String))
+  pure $ Atom (first : rest)
+
+parseQuote :: NlsParser NlsValue
+parseQuote = do
+  _ <- char '\''
+  v <- parseValue
+  pure $ List [Atom "quote", v]
 
 parseNumber :: NlsParser NlsValue
-parseNumber = Number <$> L.decimal
+parseNumber = Number <$> lexeme L.decimal
 
 parseString :: NlsParser NlsValue
-parseString = String <$> (char '"' >> manyTill L.charLiteral (char '"'))
+parseString = String <$> lexeme (char '"' >> manyTill L.charLiteral (char '"'))
 
 parseList :: NlsParser NlsValue
-parseList = do
-  _ <- char '('
-  elems <- many (sc *> parseValue)
-  sc
-  _ <- char ')'
-  return $ List elems
+parseList = List <$> between (symbol "(") (symbol ")") (many parseValue)
 
 parseValue :: NlsParser NlsValue
-parseValue = parseNumber <|> parseString <|> parseAtom <|> parseList
+parseValue =
+  lexeme $
+    parseQuote
+      <|> parseNumber
+      <|> parseString
+      <|> parseAtom
+      <|> parseList
+
+parseProgram :: NlsParser NlsValue
+parseProgram = between sc eof (List <$> many parseValue)
 
 parseNls :: Input -> Either T.Text NlsValue
 parseNls input =
-  case runParser parseValue "" input of
+  case runParser parseProgram "" input of
     Left err -> Left $ T.pack $ errorBundlePretty err
     Right val -> Right val
