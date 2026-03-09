@@ -1,23 +1,22 @@
 module Main (main) where
 
 import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
 import qualified Eval as E
 import qualified Parser as P
-import System.Environment (getArgs, getProgName)
+import qualified Repl as R
+import System.Environment (getArgs)
 
 main :: IO ()
 main = do
   args <- getArgs
-  progName <- getProgName
-
   case args of
-    [expr] -> do
-      let t = T.pack expr
-      let env = E.baseEnv
+    [filePath] -> do
+      t <- TIO.readFile filePath
       case P.parse t of
         Left err -> putStrLn (T.unpack err)
         Right ast -> do
-          case E.evalProgram env ast of
+          case E.evalProgram E.baseEnv ast of
             Left err -> putStrLn (T.unpack err)
             Right result -> mapM_ print result
-    _ -> putStrLn $ "Usage: " ++ progName ++ " <expression>"
+    _ -> R.repl E.baseEnv
