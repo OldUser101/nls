@@ -42,7 +42,7 @@ parseQuote :: NlsParser NlsAstValue
 parseQuote = do
   _ <- char '\''
   v <- parseValue
-  pure $ AList [ASymbol "'", v]
+  pure $ AList [ASymbol "quote", v]
 
 parseNumber :: NlsParser NlsAstValue
 parseNumber = ANumber <$> lexeme L.decimal

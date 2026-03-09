@@ -3,6 +3,7 @@ module Types
     NlsRunValue (..),
     Env,
     Eval,
+    aToRValue,
   )
 where
 
@@ -33,3 +34,9 @@ instance Show NlsRunValue where
   show (RSymbol s) = s
   show (RList xs) = "(" ++ unwords (map show xs) ++ ")"
   show (RFunction _) = show ("<function>" :: String)
+
+aToRValue :: NlsAstValue -> NlsRunValue
+aToRValue (ANumber n) = RNumber n
+aToRValue (AString s) = RString s
+aToRValue (ASymbol s) = RSymbol s
+aToRValue (AList xs) = RList (map aToRValue xs)

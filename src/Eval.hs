@@ -29,6 +29,10 @@ eval env (ASymbol x) = do
     Just v -> pure v
     Nothing -> Left (T.pack ("undefined symbol: " ++ x))
 eval _ (AList []) = pure (RList [])
+eval _ (AList (ASymbol "quote" : xs)) =
+  case xs of
+    [expr] -> pure $ aToRValue expr
+    _ -> Left "quote expects one argument"
 eval env (AList (f : args)) = do
   func <- eval env f
   argVals <- mapM (eval env) args
