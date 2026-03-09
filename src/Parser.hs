@@ -1,7 +1,6 @@
-module Main (main) where
+module Parser where
 
 import qualified Data.Text as T
-import System.Environment
 import Text.Megaparsec
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
@@ -53,17 +52,3 @@ parseNls input =
   case runParser parseValue "" input of
     Left err -> Left $ T.pack $ errorBundlePretty err
     Right val -> Right val
-
-main :: IO ()
-main = do
-  args <- getArgs
-  progName <- getProgName
-
-  if (length args) /= 1
-    then
-      putStrLn $ "Usage: " ++ progName ++ " <expression>"
-    else
-      let t = T.pack (args !! 0)
-       in case parseNls t of
-            Left err -> putStrLn (T.unpack err)
-            Right val -> print val
