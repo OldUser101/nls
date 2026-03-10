@@ -21,9 +21,30 @@ baseEnv :: Env
 baseEnv = Env (M.fromList B.builtins) Nothing
 
 apply :: NlsRunValue -> [NlsRunValue] -> Env -> Eval (NlsRunValue, Env)
--- TODO: use proper closures for functions
-apply (RFunction f) args env = f args env
-apply _ _ _ = Left (T.pack "attempted to call non-function")
+apply (RFunction f) args env = do
+  let env' = extendEnv env
+  (val, env'') <- f args env'
+  case reduceEnv env'' of
+    Just oldEnv -> pureWithEnv val oldEnv
+    Nothing -> Left "no environment to unwrap"
+apply _ _ _ = Left "attempted to call non-function"
+
+-- create a RFunction from a lambda expression
+createLambda :: [String] -> [NlsAstValue] -> NlsRunValue
+createLambda params body = RFunction wrapper
+  where
+    wrapper :: [NlsRunValue] -> Env -> Eval (NlsRunValue, Env)
+    wrapper args env = do
+      if length args /= length params
+        then Left ("expected " <> T.pack (show $ length params) <> " arguments, got " <> T.pack (show $ length args))
+        else do
+          let newFrame = M.fromList $ zip params args
+          let env' = mergeFrame newFrame env
+          (res, env'') <- evalProgram env' body
+
+          case res of
+            [r] -> pureWithEnv r env''
+            rs -> pureWithEnv (RList rs) env''
 
 eval :: Env -> NlsAstValue -> Eval (NlsRunValue, Env)
 eval env (ANumber n) = pureWithEnv (RNumber n) env
@@ -37,6 +58,13 @@ eval env (AList (ASymbol "quote" : xs)) =
   case xs of
     [expr] -> pureWithEnv (aToRValue expr) env
     _ -> Left "quote expects one argument"
+eval env (AList (ASymbol "lambda" : xs)) =
+  case xs of
+    [AList params, body] -> do
+      paramNames <- mapM extractParam params
+      let fn = createLambda paramNames [body]
+      pureWithEnv fn env
+    _ -> Left "lambda expects a parameter and body list"
 eval env (AList (ASymbol "define" : xs)) =
   case xs of
     [ASymbol name, expr] -> do
@@ -46,11 +74,12 @@ eval env (AList (ASymbol "define" : xs)) =
     _ -> Left "define expects a symbol and expression"
 eval env (AList (f : args)) = do
   (func, env') <- eval env f
-  argVals <- mapM (eval env') args
-  apply func (map fst argVals) env'
+  (vals, env'') <- mapAccumM eval env' args
+  apply func vals env''
 
-evalProgram :: Env -> NlsAstValue -> Eval ([NlsRunValue], Env)
-evalProgram env (AList exprs) = mapAccumM eval env exprs
-evalProgram env expr = do
-  (val, env') <- eval env expr
-  pure ([val], env')
+evalProgram :: Env -> [NlsAstValue] -> Eval ([NlsRunValue], Env)
+evalProgram env [] = pure ([], env)
+evalProgram env (x : xs) = do
+  (val, env') <- eval env x
+  (vals, env'') <- evalProgram env' xs
+  pure (val : vals, env'')

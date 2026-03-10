@@ -62,10 +62,10 @@ parseValue =
       <|> parseSymbol
       <|> parseList
 
-parseProgram :: NlsParser NlsAstValue
-parseProgram = between sc eof (AList <$> many parseValue)
+parseProgram :: NlsParser [NlsAstValue]
+parseProgram = between sc eof (many parseValue)
 
-parse :: Input -> Either T.Text NlsAstValue
+parse :: Input -> Either T.Text [NlsAstValue]
 parse input =
   case runParser parseProgram "" input of
     Left err -> Left $ T.pack $ errorBundlePretty err

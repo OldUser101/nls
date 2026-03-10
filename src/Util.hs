@@ -1,8 +1,14 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Util
   ( aToRValue,
     lookupEnv,
     define,
+    mergeFrame,
     mapAccumM,
+    extendEnv,
+    reduceEnv,
+    extractParam,
   )
 where
 
@@ -27,9 +33,27 @@ lookupEnv key env =
 define :: String -> NlsRunValue -> Env -> Env
 define key val env = env {frame = M.insert key val (frame env)}
 
+-- merge a frame into an environment
+mergeFrame :: Frame -> Env -> Env
+mergeFrame f env = env {frame = M.union f (frame env)}
+
 mapAccumM :: (Monad m) => (acc -> x -> m (y, acc)) -> acc -> [x] -> m ([y], acc)
 mapAccumM _ acc [] = pure ([], acc)
 mapAccumM f acc (x : xs) = do
   (y, acc') <- f acc x
   (ys, acc'') <- mapAccumM f acc' xs
   pure (y : ys, acc'')
+
+-- extend environment into a new frame
+extendEnv :: Env -> Env
+extendEnv env = Env {frame = M.empty, parent = Just env}
+
+-- drop the current frame, returning to old environment
+reduceEnv :: Env -> Maybe Env
+reduceEnv env = do
+  p <- parent env
+  pure p
+
+extractParam :: NlsAstValue -> Eval String
+extractParam (ASymbol s) = Right s
+extractParam _ = Left "lambda parameter is not a symbol"
