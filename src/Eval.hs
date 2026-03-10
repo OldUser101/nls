@@ -49,6 +49,8 @@ createLambda params body = RFunction wrapper
 eval :: Env -> NlsAstValue -> Eval (NlsRunValue, Env)
 eval env (ANumber n) = pureWithEnv (RNumber n) env
 eval env (AString s) = pureWithEnv (RString s) env
+eval env (ASymbol "true") = pureWithEnv (RBool True) env
+eval env (ASymbol "false") = pureWithEnv (RBool False) env
 eval env (ASymbol key) = do
   case lookupEnv key env of
     Just v -> pureWithEnv v env
@@ -58,6 +60,15 @@ eval env (AList (ASymbol "quote" : xs)) =
   case xs of
     [expr] -> pureWithEnv (aToRValue expr) env
     _ -> Left "quote expects one argument"
+eval env (AList (ASymbol "if" : xs)) =
+  case xs of
+    [_cond, _then, _else] -> do
+      (res, env') <- eval env _cond
+      case res of
+        (RBool True) -> eval env' _then
+        (RBool False) -> eval env' _else
+        _ -> Left "expected boolean condition"
+    _ -> Left "if expects a condition, then, and else"
 eval env (AList (ASymbol "lambda" : xs)) =
   case xs of
     [AList params, body] -> do
