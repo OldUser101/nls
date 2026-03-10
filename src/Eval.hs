@@ -51,6 +51,9 @@ eval env (ANumber n) = pureWithEnv (RNumber n) env
 eval env (AString s) = pureWithEnv (RString s) env
 eval env (ASymbol "true") = pureWithEnv (RBool True) env
 eval env (ASymbol "false") = pureWithEnv (RBool False) env
+eval env (AList (ASymbol "list" : xs)) = do
+  (vals, env') <- mapAccumM eval env xs
+  pureWithEnv (RList vals) env'
 eval env (ASymbol key) = do
   case lookupEnv key env of
     Just v -> pureWithEnv v env
