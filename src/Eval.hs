@@ -80,8 +80,9 @@ eval env (AList (ASymbol "define" : xs)) =
   case xs of
     [ASymbol name, expr] -> do
       (val, env') <- eval env expr
-      let newEnv = define name val env'
-      pureWithEnv (RUnit) newEnv
+      case define name val env' of
+        Left err -> Left err
+        Right env'' -> pureWithEnv (RUnit) env''
     _ -> Left "define expects a symbol and expression"
 eval env (AList (f : args)) = do
   (func, env') <- eval env f

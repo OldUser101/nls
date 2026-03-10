@@ -13,6 +13,7 @@ module Util
 where
 
 import qualified Data.Map as M
+import qualified Data.Text as T
 import Types
 
 -- directly convert a AST value toa  runtime value
@@ -30,8 +31,11 @@ lookupEnv key env =
     Nothing -> parent env >>= lookupEnv key
 
 -- define a binding in the current environment
-define :: String -> NlsRunValue -> Env -> Env
-define key val env = env {frame = M.insert key val (frame env)}
+define :: String -> NlsRunValue -> Env -> Either T.Text Env
+define key val env =
+  case M.lookup key (frame env) of
+    Just _ -> Left ("cannot shadow binding " <> T.pack key <> " in current frame")
+    Nothing -> Right env {frame = M.insert key val (frame env)}
 
 -- merge a frame into an environment
 mergeFrame :: Frame -> Env -> Env
