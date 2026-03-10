@@ -2,6 +2,7 @@
 
 module Util
   ( aToRValue,
+    rToAValue,
     lookupEnv,
     define,
     mergeFrame,
@@ -16,12 +17,23 @@ import qualified Data.Map as M
 import qualified Data.Text as T
 import Types
 
--- directly convert a AST value toa  runtime value
+-- directly convert a AST value to a runtime value
 aToRValue :: NlsAstValue -> NlsRunValue
 aToRValue (ANumber n) = RNumber n
 aToRValue (AString s) = RString s
 aToRValue (ASymbol s) = RSymbol s
 aToRValue (AList xs) = RList (map aToRValue xs)
+
+-- convert a runtime value to an AST value
+rToAValue :: NlsRunValue -> Either T.Text NlsAstValue
+rToAValue (RSymbol s) = pure $ ASymbol s
+rToAValue (RNumber n) = pure $ ANumber n
+rToAValue (RString s) = pure $ AString s
+rToAValue (RBool True) = pure $ ASymbol "true"
+rToAValue (RBool False) = pure $ ASymbol "false"
+rToAValue (RList xs) = AList <$> mapM rToAValue xs
+rToAValue (RFunction _) = Left "cannot eval a function"
+rToAValue RUnit = Left "cannot eval an empty unit"
 
 -- lookup a key recursively in an environment
 lookupEnv :: String -> Env -> Maybe NlsRunValue

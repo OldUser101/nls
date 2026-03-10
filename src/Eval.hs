@@ -60,6 +60,14 @@ eval env (AList (ASymbol "quote" : xs)) =
   case xs of
     [expr] -> pureWithEnv (aToRValue expr) env
     _ -> Left "quote expects one argument"
+eval env (AList (ASymbol "eval" : xs)) =
+  case xs of
+    [expr] -> do
+      (result, env') <- eval env expr
+      case rToAValue result of
+        Right ast -> eval env' ast
+        Left err -> Left err
+    _ -> Left "eval expects one argument"
 eval env (AList (ASymbol "if" : xs)) =
   case xs of
     [_cond, _then, _else] -> do

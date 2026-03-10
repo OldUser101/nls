@@ -44,6 +44,12 @@ parseQuote = do
   v <- parseValue
   pure $ AList [ASymbol "quote", v]
 
+parseEval :: NlsParser NlsAstValue
+parseEval = do
+  _ <- char '!'
+  v <- parseValue
+  pure $ AList [ASymbol "eval", v]
+
 parseNumber :: NlsParser NlsAstValue
 parseNumber = ANumber <$> lexeme L.decimal
 
@@ -56,7 +62,8 @@ parseList = AList <$> between (symbol "(") (symbol ")") (many parseValue)
 parseValue :: NlsParser NlsAstValue
 parseValue =
   lexeme $
-    parseQuote
+    parseEval
+      <|> parseQuote
       <|> parseNumber
       <|> parseString
       <|> parseSymbol
