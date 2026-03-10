@@ -18,7 +18,7 @@ pureWithEnv val env = pure (val, env)
 
 -- create a new base environment with builtins
 baseEnv :: Env
-baseEnv = Env (M.fromList B.builtins) Nothing
+baseEnv = extendEnv (Env (M.fromList B.builtins) Nothing)
 
 apply :: NlsRunValue -> [NlsRunValue] -> Env -> Eval (NlsRunValue, Env)
 apply (RFunction f) args env = do
