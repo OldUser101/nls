@@ -98,11 +98,7 @@ createLambda params body = RFunction wrapper
         else do
           let newFrame = M.fromList $ zip params args
           let env' = mergeFrame newFrame env
-          (res, env'') <- evalProgram env' body
-
-          case res of
-            [r] -> pureWithEnv r env''
-            rs -> pureWithEnv (RList rs) env''
+          evalProgram env' body
 
 eval :: Env -> NlsAstValue -> Eval (NlsRunValue, Env)
 eval env (ANumber n) = pureWithEnv (RNumber n) env
@@ -128,9 +124,9 @@ eval env (AList (f : args)) =
       (vals, env'') <- mapAccumM eval env' args
       apply func vals env''
 
-evalProgram :: Env -> [NlsAstValue] -> Eval ([NlsRunValue], Env)
-evalProgram env [] = pure ([], env)
+evalProgram :: Env -> [NlsAstValue] -> Eval (NlsRunValue, Env)
+evalProgram env [] = pure (RUnit, env)
+evalProgram env [x] = eval env x
 evalProgram env (x : xs) = do
-  (val, env') <- eval env x
-  (vals, env'') <- evalProgram env' xs
-  pure (val : vals, env'')
+  (_, env') <- eval env x
+  evalProgram env' xs

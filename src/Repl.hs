@@ -10,6 +10,18 @@ import System.IO
   )
 import Types
 
+-- evaluate and print AST
+evalMany :: Env -> [NlsAstValue] -> IO Env
+evalMany env [] = pure env
+evalMany env (x : xs) =
+  case E.eval env x of
+    Left err -> do
+      putStrLn $ "Error: " ++ T.unpack err
+      pure env
+    Right (val, env') -> do
+      print val
+      evalMany env' xs
+
 repl :: Env -> IO ()
 repl env = do
   putStr "nls> "
@@ -24,12 +36,5 @@ repl env = do
         Left err -> do
           putStrLn $ "Parse error: " ++ (T.unpack err)
           pure env
-        Right ast -> do
-          case E.evalProgram env ast of
-            Left err -> do
-              putStrLn $ "Error: " ++ (T.unpack err)
-              pure env
-            Right (results, env') -> do
-              mapM_ print results
-              pure env'
+        Right ast -> evalMany env ast
       repl newEnv

@@ -37,9 +37,10 @@ data NlsRunValue
 
 instance Show NlsRunValue where
   show (RNumber n) = show n
-  show (RBool v) = if v then "true" else "false"
+  show (RBool b) = if b then "true" else "false"
   show (RString s) = show s
   show (RSymbol s) = s
   show (RList xs) = "(" ++ unwords (map show xs) ++ ")"
   show (RFunction _) = "<function>"
   show RUnit = "<empty>"
+
