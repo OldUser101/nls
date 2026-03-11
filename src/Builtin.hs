@@ -81,6 +81,23 @@ builtinLtEq xs = case xs of
   [] -> pure $ RBool True
   (f : rest) -> makeBuiltinComp (<=) f rest
 
+builtinList :: [NlsRunValue] -> Eval NlsRunValue
+builtinList args = pure $ RList args
+
+builtinCons :: [NlsRunValue] -> Eval NlsRunValue
+builtinCons [x, RList xs] = pure $ RList (x : xs)
+builtinCons _ = Left "cons expects a value and list"
+
+builtinCar :: [NlsRunValue] -> Eval NlsRunValue
+builtinCar [RList (x : _)] = pure x
+builtinCar [RList []] = Left "cannot get head of empty list"
+builtinCar _ = Left "car expects a single list argument"
+
+builtinCdr :: [NlsRunValue] -> Eval NlsRunValue
+builtinCdr [RList (_ : xs)] = pure $ RList xs
+builtinCdr [RList []] = Left "cannot get tail of empty list"
+builtinCdr _ = Left "cdr expects a single list argument"
+
 wrapBuiltin :: ([NlsRunValue] -> Eval NlsRunValue) -> NlsRunValue
 wrapBuiltin f = RFunction wrapped
   where
@@ -101,5 +118,9 @@ builtins =
     (">", wrapBuiltin builtinGt),
     ("<", wrapBuiltin builtinLt),
     (">=", wrapBuiltin builtinGtEq),
-    ("<=", wrapBuiltin builtinLtEq)
+    ("<=", wrapBuiltin builtinLtEq),
+    ("list", wrapBuiltin builtinList),
+    ("cons", wrapBuiltin builtinCons),
+    ("car", wrapBuiltin builtinCar),
+    ("cdr", wrapBuiltin builtinCdr)
   ]

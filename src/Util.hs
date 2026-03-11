@@ -10,6 +10,7 @@ module Util
     extendEnv,
     reduceEnv,
     extractParam,
+    pureWithEnv,
   )
 where
 
@@ -73,3 +74,6 @@ reduceEnv env = do
 extractParam :: NlsAstValue -> Eval String
 extractParam (ASymbol s) = Right s
 extractParam _ = Left "lambda parameter is not a symbol"
+
+pureWithEnv :: NlsRunValue -> Env -> Eval (NlsRunValue, Env)
+pureWithEnv val env = pure (val, env)
