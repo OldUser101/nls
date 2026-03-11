@@ -42,10 +42,16 @@ metaFuncs =
 
 defineFunc :: Env -> [NlsAstValue] -> Eval (NlsRunValue, Env)
 defineFunc env [ASymbol name, expr] = do
-  (val, env') <- eval env expr
-  case define name val env' of
-    Left err -> Left err
-    Right env'' -> pureWithEnv (RUnit) env''
+  -- keywords and meta-functions cannot be overriden
+  case M.lookup name keywords of
+    Just _ -> Left ("cannot shadow keyword: " <> T.pack name)
+    Nothing -> case M.lookup name metaFuncs of
+      Just _ -> Left ("cannot shadow meta-function: " <> T.pack name)
+      Nothing -> do
+        (val, env') <- eval env expr
+        case define name val env' of
+          Left err -> Left err
+          Right env'' -> pureWithEnv (RUnit) env''
 defineFunc _ _ = Left "define expects a symbol and expression"
 
 lambdaFunc :: Env -> [NlsAstValue] -> Eval (NlsRunValue, Env)
@@ -94,7 +100,13 @@ createLambda params body = RFunction wrapper
     wrapper :: [NlsRunValue] -> Env -> Eval (NlsRunValue, Env)
     wrapper args env = do
       if length args /= length params
-        then Left ("expected " <> T.pack (show $ length params) <> " arguments, got " <> T.pack (show $ length args))
+        then
+          Left
+            ( "expected "
+                <> T.pack (show $ length params)
+                <> " arguments, got "
+                <> T.pack (show $ length args)
+            )
         else do
           let newFrame = M.fromList $ zip params args
           let env' = mergeFrame newFrame env
