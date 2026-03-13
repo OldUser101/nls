@@ -34,6 +34,7 @@ metaFuncs :: M.Map String (Env -> [NlsAstValue] -> Eval (NlsRunValue, Env))
 metaFuncs =
   M.fromList
     [ ("define", defineFunc),
+      ("undefine", unDefineFunc),
       ("lambda", lambdaFunc),
       ("if", ifFunc),
       ("eval", evalFunc),
@@ -53,6 +54,13 @@ defineFunc env [ASymbol name, expr] = do
           Left err -> Left err
           Right env'' -> pureWithEnv (RUnit) env''
 defineFunc _ _ = Left "define expects a symbol and expression"
+
+unDefineFunc :: Env -> [NlsAstValue] -> Eval (NlsRunValue, Env)
+unDefineFunc env [ASymbol name] =
+  case undefine name env of
+    Left err -> Left err
+    Right env' -> pureWithEnv (RUnit) env'
+unDefineFunc _ _ = Left "undefine expects a symbol"
 
 lambdaFunc :: Env -> [NlsAstValue] -> Eval (NlsRunValue, Env)
 lambdaFunc env [AList params, body] = do

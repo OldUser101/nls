@@ -5,6 +5,7 @@ module Util
     rToAValue,
     lookupEnv,
     define,
+    undefine,
     mergeFrame,
     mapAccumM,
     extendEnv,
@@ -49,6 +50,13 @@ define key val env =
   case M.lookup key (frame env) of
     Just _ -> Left ("cannot shadow binding " <> T.pack key <> " in current frame")
     Nothing -> Right env {frame = M.insert key val (frame env)}
+
+-- remove a binding from the current frame
+undefine :: String -> Env -> Either T.Text Env
+undefine key env =
+  case M.lookup key (frame env) of
+    Just _ -> Right env {frame = M.delete key (frame env)}
+    Nothing -> Left ("binding " <> T.pack key <> " not found in current frame")
 
 -- merge a frame into an environment
 mergeFrame :: Frame -> Env -> Env
