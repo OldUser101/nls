@@ -1,0 +1,7 @@
+
+# just some useful nls functions
+
+(define map (lambda (f x) (if x (cons (f (car x)) (map f (cdr x))) nil)))
+(define fold (lambda (f b x) (if x (f (car x) (fold f b (cdr x))) b)))
+(define inc (lambda (x) (+ x 1)))
+(define dec (lambda (x) (- x 1)))
