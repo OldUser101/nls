@@ -6,6 +6,7 @@ import qualified Eval as E
 import qualified Parser as P
 import qualified Repl as R
 import System.Environment (getArgs)
+import Types
 
 main :: IO ()
 main = do
@@ -18,5 +19,6 @@ main = do
         Right ast -> do
           case E.evalProgram E.baseEnv ast of
             Left err -> putStrLn (T.unpack err)
+            Right (RUnit, env) -> R.repl env
             Right (result, _) -> print result
     _ -> R.repl E.baseEnv
