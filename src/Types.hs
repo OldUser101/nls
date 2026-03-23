@@ -43,4 +43,3 @@ instance Show NlsRunValue where
   show (RList xs) = "(" ++ unwords (map show xs) ++ ")"
   show (RFunction _) = "<function>"
   show RUnit = "<empty>"
-
