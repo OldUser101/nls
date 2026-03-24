@@ -33,7 +33,7 @@ evalTop env [x] =
       case res of
         Left err -> pure $ Left err
         Right (_, env') ->
-          case U.define name (RModule env') env of
+          case U.define name (Right $ RModule env') env of
             Left err -> pure $ Left err
             Right env'' -> pure $ Right (RUnit, env'')
     AList (ASymbol "import" : _) -> pure $ Left "import expects a file path and symbol"

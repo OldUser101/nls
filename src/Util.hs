@@ -40,21 +40,21 @@ rToAValue (RModule _) = Left "cannot eval a module"
 rToAValue RUnit = Left "cannot eval an empty unit"
 
 -- lookup a key recursively in an environment
-lookupEnv :: String -> Env -> Maybe NlsRunValue
+lookupEnv :: String -> Env -> Maybe NlsThunk
 lookupEnv key env =
   case M.lookup key (frame env) of
     Just v -> Just v
     Nothing -> parent env >>= lookupEnv key
 
 -- define a binding in the current environment
-define :: String -> NlsRunValue -> Env -> Either T.Text Env
+define :: String -> NlsThunk -> Env -> Either T.Text Env
 define key val env =
   case M.lookup key (frame env) of
     Just _ -> Left ("cannot shadow binding " <> T.pack key <> " in current frame")
     Nothing -> Right env {frame = M.insert key val (frame env)}
 
 -- define without checking shadow rules
-defineUnchecked :: String -> NlsRunValue -> Env -> Env
+defineUnchecked :: String -> NlsThunk -> Env -> Env
 defineUnchecked key val env = env {frame = M.insert key val (frame env)}
 
 -- remove a binding from the current frame

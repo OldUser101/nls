@@ -1,6 +1,7 @@
 module Types
   ( NlsAstValue (..),
     NlsRunValue (..),
+    NlsThunk,
     Env (..),
     Eval,
     Frame,
@@ -17,7 +18,9 @@ data NlsAstValue
   | AList [NlsAstValue]
   deriving (Show, Eq, Ord)
 
-type Frame = M.Map String NlsRunValue
+type NlsThunk = Eval NlsRunValue
+
+type Frame = M.Map String NlsThunk
 
 data Env = Env
   { frame :: Frame,

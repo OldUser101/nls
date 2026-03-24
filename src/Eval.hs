@@ -13,9 +13,12 @@ import qualified Data.Text as T
 import Types
 import Util
 
+mapThunk :: [(String, NlsRunValue)] -> [(String, NlsThunk)]
+mapThunk = map (\(name, val) -> (name, Right val))
+
 -- create a new base environment with builtins
 baseEnv :: Env
-baseEnv = extendEnv (Env (M.fromList B.builtins) Nothing)
+baseEnv = extendEnv (Env (M.fromList $ mapThunk B.builtins) Nothing)
 
 -- keywords map for predefined values
 -- this is separate from builtins, these cannot be shadowed
@@ -50,11 +53,14 @@ defineFunc env [ASymbol name, expr] = do
     Just _ -> Left ("cannot shadow keyword: " <> T.pack name)
     Nothing -> case M.lookup name metaFuncs of
       Just _ -> Left ("cannot shadow meta-function: " <> T.pack name)
-      Nothing -> do
-        (val, env') <- eval env expr
-        case define name val env' of
-          Left err -> Left err
-          Right env'' -> pureWithEnv (RUnit) env''
+      Nothing ->
+        let thunk :: NlsThunk
+            thunk = do
+              (val, _) <- eval env' expr
+              pure val
+            env' :: Env
+            env' = defineUnchecked name thunk env
+         in pureWithEnv (RUnit) env'
 defineFunc _ _ = Left "define expects a symbol and expression"
 
 unDefFunc :: Env -> [NlsAstValue] -> Eval (NlsRunValue, Env)
@@ -100,7 +106,9 @@ getFunc env [mExpr, AString key] = do
   case mVal of
     RModule env' ->
       case lookupEnv key env' of
-        Just val -> pureWithEnv val env
+        Just thunk -> do
+          val <- thunk
+          pureWithEnv val env
         Nothing -> Left $ "module does not contain: " <> T.pack key
     _ -> Left "expected module"
 getFunc _ _ = Left "get expects a module and a string"
@@ -124,7 +132,7 @@ createLambda :: Env -> [String] -> [NlsAstValue] -> NlsRunValue
 createLambda env params body = RFunction wrapper
   where
     wrapper :: [NlsRunValue] -> Env -> Eval (NlsRunValue, Env)
-    wrapper args _ = do
+    wrapper args callEnv = do
       if length args /= length params
         then
           Left
@@ -134,9 +142,10 @@ createLambda env params body = RFunction wrapper
                 <> T.pack (show $ length args)
             )
         else do
-          let newFrame = M.fromList $ zip params args
+          let newFrame = M.fromList $ mapThunk $ zip params args
           let env' = mergeFrame newFrame env
-          evalProgram env' body
+          (val, _) <- evalProgram env' body
+          pureWithEnv val callEnv
 
 -- evaluate a single ast value
 eval :: Env -> NlsAstValue -> Eval (NlsRunValue, Env)
@@ -146,7 +155,9 @@ eval env (ASymbol key) = do
   case M.lookup key keywords of
     Just v -> pureWithEnv v env
     Nothing -> case lookupEnv key env of
-      Just v -> pureWithEnv v env
+      Just thunk -> do
+        val <- thunk
+        pureWithEnv val env
       Nothing -> Left (T.pack ("undefined symbol: " ++ key))
 eval env (AList []) = pureWithEnv (RList []) env
 eval env (AList (f : args)) =
