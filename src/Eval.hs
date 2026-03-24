@@ -34,11 +34,13 @@ metaFuncs :: M.Map String (Env -> [NlsAstValue] -> Eval (NlsRunValue, Env))
 metaFuncs =
   M.fromList
     [ ("define", defineFunc),
-      ("undefine", unDefineFunc),
+      ("undef", unDefFunc),
       ("lambda", lambdaFunc),
       ("if", ifFunc),
       ("eval", evalFunc),
-      ("quote", quoteFunc)
+      ("quote", quoteFunc),
+      ("get", getFunc),
+      ("import", importFunc)
     ]
 
 defineFunc :: Env -> [NlsAstValue] -> Eval (NlsRunValue, Env)
@@ -55,17 +57,17 @@ defineFunc env [ASymbol name, expr] = do
           Right env'' -> pureWithEnv (RUnit) env''
 defineFunc _ _ = Left "define expects a symbol and expression"
 
-unDefineFunc :: Env -> [NlsAstValue] -> Eval (NlsRunValue, Env)
-unDefineFunc env [ASymbol name] =
+unDefFunc :: Env -> [NlsAstValue] -> Eval (NlsRunValue, Env)
+unDefFunc env [ASymbol name] =
   case undefine name env of
     Left err -> Left err
     Right env' -> pureWithEnv (RUnit) env'
-unDefineFunc _ _ = Left "undefine expects a symbol"
+unDefFunc _ _ = Left "undef expects a symbol"
 
 lambdaFunc :: Env -> [NlsAstValue] -> Eval (NlsRunValue, Env)
 lambdaFunc env [AList params, body] = do
   paramNames <- mapM extractParam params
-  let fn = createLambda paramNames [body]
+  let fn = createLambda env paramNames [body]
   pureWithEnv fn env
 lambdaFunc _ _ = Left "lambda expects a parameter and body list"
 
@@ -92,6 +94,20 @@ quoteFunc :: Env -> [NlsAstValue] -> Eval (NlsRunValue, Env)
 quoteFunc env [expr] = pureWithEnv (aToRValue expr) env
 quoteFunc _ _ = Left "quote expects one argument"
 
+getFunc :: Env -> [NlsAstValue] -> Eval (NlsRunValue, Env)
+getFunc env [mExpr, AString key] = do
+  (mVal, _) <- eval env mExpr
+  case mVal of
+    RModule env' ->
+      case lookupEnv key env' of
+        Just val -> pureWithEnv val env
+        Nothing -> Left $ "module does not contain: " <> T.pack key
+    _ -> Left "expected module"
+getFunc _ _ = Left "get expects a module and a string"
+
+importFunc :: Env -> [NlsAstValue] -> Eval (NlsRunValue, Env)
+importFunc _ _ = Left "cannot call raw import"
+
 -- EVALUATION --
 
 apply :: NlsRunValue -> [NlsRunValue] -> Env -> Eval (NlsRunValue, Env)
@@ -104,11 +120,11 @@ apply (RFunction f) args env = do
 apply _ _ _ = Left "attempted to call non-function"
 
 -- create a RFunction from a lambda expression
-createLambda :: [String] -> [NlsAstValue] -> NlsRunValue
-createLambda params body = RFunction wrapper
+createLambda :: Env -> [String] -> [NlsAstValue] -> NlsRunValue
+createLambda env params body = RFunction wrapper
   where
     wrapper :: [NlsRunValue] -> Env -> Eval (NlsRunValue, Env)
-    wrapper args env = do
+    wrapper args _ = do
       if length args /= length params
         then
           Left
@@ -122,6 +138,7 @@ createLambda params body = RFunction wrapper
           let env' = mergeFrame newFrame env
           evalProgram env' body
 
+-- evaluate a single ast value
 eval :: Env -> NlsAstValue -> Eval (NlsRunValue, Env)
 eval env (ANumber n) = pureWithEnv (RNumber n) env
 eval env (AString s) = pureWithEnv (RString s) env
@@ -146,6 +163,7 @@ eval env (AList (f : args)) =
       (vals, env'') <- mapAccumM eval env' args
       apply func vals env''
 
+-- evaluate a sequence of ast values
 evalProgram :: Env -> [NlsAstValue] -> Eval (NlsRunValue, Env)
 evalProgram env [] = pure (RUnit, env)
 evalProgram env [x] = eval env x

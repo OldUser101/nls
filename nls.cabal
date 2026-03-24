@@ -69,7 +69,6 @@ executable nls
     Builtin
     Eval
     Parser
-    Repl
     Types
     Util
 

@@ -5,6 +5,7 @@ module Util
     rToAValue,
     lookupEnv,
     define,
+    defineUnchecked,
     undefine,
     mergeFrame,
     mapAccumM,
@@ -35,6 +36,7 @@ rToAValue (RBool True) = pure $ ASymbol "true"
 rToAValue (RBool False) = pure $ ASymbol "false"
 rToAValue (RList xs) = AList <$> mapM rToAValue xs
 rToAValue (RFunction _) = Left "cannot eval a function"
+rToAValue (RModule _) = Left "cannot eval a module"
 rToAValue RUnit = Left "cannot eval an empty unit"
 
 -- lookup a key recursively in an environment
@@ -50,6 +52,10 @@ define key val env =
   case M.lookup key (frame env) of
     Just _ -> Left ("cannot shadow binding " <> T.pack key <> " in current frame")
     Nothing -> Right env {frame = M.insert key val (frame env)}
+
+-- define without checking shadow rules
+defineUnchecked :: String -> NlsRunValue -> Env -> Env
+defineUnchecked key val env = env {frame = M.insert key val (frame env)}
 
 -- remove a binding from the current frame
 undefine :: String -> Env -> Either T.Text Env

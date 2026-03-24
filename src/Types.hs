@@ -33,6 +33,7 @@ data NlsRunValue
   | RSymbol String
   | RList [NlsRunValue]
   | RFunction ([NlsRunValue] -> Env -> Eval (NlsRunValue, Env))
+  | RModule Env
   | RUnit -- an empty value
 
 instance Show NlsRunValue where
@@ -42,4 +43,5 @@ instance Show NlsRunValue where
   show (RSymbol s) = s
   show (RList xs) = "(" ++ unwords (map show xs) ++ ")"
   show (RFunction _) = "<function>"
+  show (RModule _) = "<module>"
   show RUnit = "<empty>"

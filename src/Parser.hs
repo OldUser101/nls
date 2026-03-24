@@ -32,11 +32,32 @@ lexeme = L.lexeme sc
 symbol :: T.Text -> NlsParser T.Text
 symbol = L.symbol sc
 
+-- split a string with character delimiter
+splitOn :: Char -> String -> [String]
+splitOn c str =
+  case break (== c) str of
+    (before, []) -> [before]
+    (before, _ : after) -> before : splitOn c after
+
+-- make `get` ast
+makeGet :: NlsAstValue -> String -> NlsAstValue
+makeGet acc key = AList [ASymbol "get", acc, AString key]
+
+-- desugar dotted expr into `get` sequence
+desugarDotted :: String -> NlsAstValue
+desugarDotted s =
+  case splitOn '.' s of
+    [] -> AString s -- this should never happen
+    (x : xs) -> foldl makeGet (ASymbol x) xs
+
 parseSymbol :: NlsParser NlsAstValue
 parseSymbol = do
   first <- letterChar <|> oneOf ("!$%&|*+-/:<=>?@^_~" :: String)
-  rest <- many (alphaNumChar <|> oneOf ("!$%&|*+-/:<=>?@^_~" :: String))
-  pure $ ASymbol (first : rest)
+  rest <- many (alphaNumChar <|> oneOf ("!$%&|*+-/:<=>?@^_~." :: String))
+  let sym = first : rest
+  if elem '.' sym
+    then pure $ desugarDotted sym
+    else pure $ ASymbol sym
 
 parseQuote :: NlsParser NlsAstValue
 parseQuote = do
