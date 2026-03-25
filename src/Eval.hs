@@ -85,6 +85,9 @@ ifFunc env [_cond, _then, _else] = do
     (RBool False) -> eval env' _else
     (RList []) -> eval env' _else -- nil evaluates to false
     (RList _) -> eval env' _then
+    -- yes this is C style
+    (RNumber 0) -> eval env' _else
+    (RNumber _) -> eval env _then
     _ -> Left "expected boolean condition"
 ifFunc _ _ = Left "if expects a condition, then, and else"
 
