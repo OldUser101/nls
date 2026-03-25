@@ -5,4 +5,5 @@
 (define fold (lambda (f b x) (if x (f (car x) (fold f b (cdr x))) b)))
 (define inc (lambda (x) (+ x 1)))
 (define dec (lambda (x) (- x 1)))
+(define filter (lambda (f x) (if x (if (f (car x)) (cons (car x) (filter f (cdr x))) (filter f (cdr x))) nil)))
 
