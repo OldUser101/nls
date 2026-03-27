@@ -71,9 +71,9 @@ unDefFunc env [ASymbol name] =
 unDefFunc _ _ = Left "undef expects a symbol"
 
 lambdaFunc :: Env -> [NlsAstValue] -> Eval (NlsRunValue, Env)
-lambdaFunc env [AList params, body] = do
+lambdaFunc env (AList params : body) = do
   paramNames <- mapM extractParam params
-  let fn = createLambda env paramNames [body]
+  let fn = createLambda env paramNames body
   pureWithEnv fn env
 lambdaFunc _ _ = Left "lambda expects a parameter and body list"
 
